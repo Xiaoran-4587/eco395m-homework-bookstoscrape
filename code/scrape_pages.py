@@ -1,23 +1,50 @@
 from common import get_soup
+from urllib.parse import urljoin
 
 
 def scrape_page(num):
-    """Takes a page and returns a list of links to the book that are on the page."""
+   
+    page_number = str(num)
+    page_url = "http://books.toscrape.com/catalogue/page-" + page_number + ".html"
 
-    return None
+    soup = get_soup(page_url)
+
+    books = soup.find_all("article", class_="product_pod")
+
+    book_urls = []
+
+    for book in books:
+        heading = book.find("h3")
+        link = heading.find("a")
+        relative_url = link["href"]
+
+        full_url = urljoin(page_url, relative_url)
+        book_urls.append(full_url)
+
+    return book_urls
 
 
 def scrape_all_pages():
-    """Scrapes all pages, returning a list of book links."""
+    all_book_urls = []
+    page_number = 1
 
-    return None
+    while True:
+        book_urls = scrape_page(page_number)
+
+        if len(book_urls) == 0:
+            break
+
+        for book_url in book_urls:
+            all_book_urls.append(book_url)
+
+        print("Finished page:", page_number)
+
+        page_number = page_number + 1
+
+    return all_book_urls
 
 
 if __name__ == "__main__":
-
-    # code for testing
-
-    # test scrape_page
 
     page_3_actual_book_urls = [
         "http://books.toscrape.com/catalogue/slow-states-of-collapse-poems_960/index.html",
@@ -45,3 +72,15 @@ if __name__ == "__main__":
     page_3_book_urls = scrape_page(3)
 
     assert set(page_3_book_urls) == set(page_3_actual_book_urls)
+  
+    print(page_3_book_urls)
+    print("Number of books:", len(page_3_book_urls))
+
+    all_book_urls = scrape_all_pages()
+
+    print("Total books:", len(all_book_urls))
+
+    assert len(all_book_urls) == 1000
+    assert len(set(all_book_urls)) == 1000
+
+    print("All pages test passed!")

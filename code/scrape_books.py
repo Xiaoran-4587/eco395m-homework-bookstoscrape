@@ -2,54 +2,109 @@ from common import get_soup
 
 
 def extract_price(price_str):
-    """Extracts the price form the string in the product description as a float."""
+    number_text = ""
 
-    return None
+    for character in price_str:
+        if character in "0123456789.":
+            number_text = number_text + character
+
+    price = float(number_text)
+
+    return price
 
 
 def extract_stock(stock_str):
-    """Extracts the count form the string in the product description as an int."""
+    number_text = ""
 
-    return None
+    for character in stock_str:
+        if character in "0123456789":
+            number_text = number_text + character
+
+    if number_text == "":
+        stock = 0
+    else:
+        stock = int(number_text)
+
+    return stock
 
 
 def get_category(soup):
-    """Extracts the category from the BeautifulSoup instance representing a book page as a string."""
-
-    breadcrumb_tag = soup.find_all("ul", class_="breadcrumb")[0]
+    breadcrumb_tag = soup.find("ul", class_="breadcrumb")
     a_tags = breadcrumb_tag.find_all("a")
 
-    return None
+    category_tag = a_tags[-1]
+    category = category_tag.get_text(strip=True)
+
+    return category
 
 
 def get_title(soup):
-    """Extracts the title from the BeautifulSoup instance representing a book page as a string."""
-
-    return None
+    title_tag = soup.find("h1")
+    title = title_tag.get_text(strip=True)
+    return title
 
 
 def get_description(soup):
-    """Extracts the description from the BeautifulSoup instance representing a book page as a string."""
+    description_heading = soup.find("div", id="product_description")
 
-    return None
+    if description_heading is None:
+        return None
+
+    description_tag = description_heading.find_next_sibling("p")
+    description = description_tag.get_text(strip=True)
+
+    return description
 
 
 def get_product_information(soup):
-    """Extracts the product information from the BeautifulSoup instance representing a book page as a dict."""
+    table = soup.find("table", class_="table-striped")
+    rows = table.find_all("tr")
 
-    return None
+    product_information = {}
+
+    for row in rows:
+        heading = row.find("th").get_text(strip=True)
+        value = row.find("td").get_text(strip=True)
+
+        if heading == "UPC":
+            product_information["upc"] = value
+
+        if heading == "Price (excl. tax)":
+            product_information["price_gbp"] = extract_price(value)
+
+        if heading == "Availability":
+            product_information["stock"] = extract_stock(value)
+
+    return product_information
 
 
 def scrape_book(book_url):
-    """Extracts all information from a book page and returns a dict."""
+    soup = get_soup(book_url)
 
-    return None
+    product_information = get_product_information(soup)
+
+    book = {}
+
+    book["upc"] = product_information["upc"]
+    book["title"] = get_title(soup)
+    book["category"] = get_category(soup)
+    book["description"] = get_description(soup)
+    book["price_gbp"] = product_information["price_gbp"]
+    book["stock"] = product_information["stock"]
+
+    return book
 
 
 def scrape_books(book_urls):
-    """Extracts all information from a list of book page and returns a list of dicts."""
+    books = []
 
-    return None
+    for book_url in book_urls:
+        book = scrape_book(book_url)
+        books.append(book)
+
+        print("Finished book:", len(books))
+
+    return books
 
 
 if __name__ == "__main__":
@@ -106,3 +161,5 @@ if __name__ == "__main__":
 
     assert set(book.keys()) == expected_keys
     assert set(book_no_description.keys()) == expected_keys
+
+    print("All book tests passed!")
